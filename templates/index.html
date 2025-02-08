@@ -1,1 +1,138 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speech to Text (English & Tamil)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      width: 40%;
+      margin: 5% auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+    }
+    h1 {
+      color: #333;
+    }
+    select, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+      background: #e9ecef;
+      font-size: 18px;
+      min-height: 50px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Speech to Text Converter</h1>
+    <label for="language"><b>Select Language:</b></label>
+    <select id="language">
+      <option value="en-US">English (US)</option>
+      <option value="ta-IN">Tamil (தமிழ்)</option>
+    </select>
+    <br>
+    <button id="startButton" onclick="startRecording()">🎙️ Start Recording</button>
+    <button id="stopButton" onclick="stopRecording()" disabled>🛑 Stop Recording</button>
+    <p id="output">Speech will appear here...</p>
+  </div>
+
+  <script>
+    let recognition;
+    let isRecording = false;
+    let finalTranscript = "";
+
+    function startRecording() {
+      if (isRecording) return; // Prevent overlapping sessions
+
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Your browser does not support Speech Recognition. Try using Google Chrome.");
+        return;
+      }
+
+      // Reset transcript and update UI
+      finalTranscript = "";
+      document.getElementById("output").innerText = "Listening...";
+
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = document.getElementById("language").value;
+
+      recognition.onstart = function() {
+        isRecording = true;
+        document.getElementById("startButton").disabled = true;
+        document.getElementById("stopButton").disabled = false;
+      };
+
+      recognition.onresult = function(event) {
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        // Combine the final and interim transcripts
+        let combinedTranscript = finalTranscript + interimTranscript;
+        // Replace "full stop" with "." and "slash" with "/"
+        combinedTranscript = combinedTranscript
+          .replace(/\bfull stop\b/gi, ".")
+          .replace(/\bslash\b/gi, "/");
+        document.getElementById("output").innerText = combinedTranscript;
+      };
+
+      recognition.onerror = function(event) {
+        console.error("Speech Recognition Error:", event.error);
+        document.getElementById("output").innerText = "Error occurred: " + event.error;
+      };
+
+      recognition.onend = function() {
+        isRecording = false;
+        document.getElementById("startButton").disabled = false;
+        document.getElementById("stopButton").disabled = true;
+        if (document.getElementById("output").innerText === "Listening...") {
+          document.getElementById("output").innerText = "No speech detected. Try again.";
+        }
+      };
+
+      recognition.start();
+    }
+
+    function stopRecording() {
+      if (recognition && isRecording) {
+        recognition.stop();
+      }
+    }
+  </script>
+</body>
+</html>
